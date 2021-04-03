@@ -1,7 +1,9 @@
 .FirstContainer {
   display: flex;
   justify-content: center;
-  margin-top: 16vh;
+  align-items: center;
+  background-color: #dfdfdf;
+  height: 100vh;
 }
 
 .signup {

@@ -1,12 +1,14 @@
 .container {
   display: flex;
   justify-content: center;
-  margin-top: 20vh;
+  align-items: center;
+  background-color: #dfdfdf;
+  height: 100vh;
 }
 
 .login {
   border: 1px solid black;
-  height: 50vh;
+  height: 55vh;
   width: 50vh;
   align-items: center;
   border-radius: 12px;

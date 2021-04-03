@@ -1,21 +1,45 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import firebase from "firebase/app";
 import AddTodo from "../AddToDo/index";
-import "../../App.css";
+import "./index.css";
 import TodoItem from "../ToDoItem/index";
 
 function ToDo() {
-  const [todos, setTodos] = useState([
-    { text: "Buy Milk", completed: false },
-    { text: "Buy Egg", completed: true },
-  ]);
+  const [todos, setTodos] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    firebase.auth().onAuthStateChanged((user) => {
+      setIsLoading(true);
+      if (user) {
+        let uid = user.uid;
+        firebase
+          .database()
+          .ref(`/todoData/${uid}`)
+          .on("value", (snapshot) => {
+            let newData = snapshot.val() ? Object.values(snapshot.val()) : [];
+            let keys = snapshot.val() ? Object.keys(snapshot.val()) : [];
+            newData = newData.map((item, i) => ({ ...item, key: keys[i] }));
+            setTodos(newData);
+            setIsLoading(false);
+          });
+      } else {
+        setIsLoading(false);
+        console.log("New User");
+      }
+    });
+  }, []);
 
   const addTodoState = (text) => {
     if (text) {
-      const newTodos = todos.concat({
+      let newTodos = {
         text,
         completed: false,
-      });
-      setTodos(newTodos);
+      };
+      let newTodo = todos.concat(newTodos);
+      setTodos(newTodo);
+      const uid = firebase.auth()?.currentUser?.uid;
+      firebase.database().ref(`/todoData/${uid}`).push(newTodos);
     }
   };
 
@@ -39,14 +63,22 @@ function ToDo() {
   // });
   // setTodos(newTodo);
 
-  const deleteTodoFromState = (index) => {
+  const deleteTodoFromState = (index, todo) => {
     const newTodo = todos.filter((todo, i) => {
       return index === i ? false : true;
     });
     setTodos(newTodo);
+    const uid = firebase.auth()?.currentUser?.uid;
+    firebase.database().ref(`/todoData/${uid}/${todo.key}`).remove();
   };
 
-  const editTodoFromState = (index, newTxt) => {
+  // setTodos((previousData) => {
+  //   let preData = [...previousData];
+  //   preData[index].text = newTxt;
+  //   return preData;
+  // });
+
+  const editTodoFromState = (index, newTxt, todo) => {
     const newTodos = todos.map((todo, i) => {
       if (index === i) {
         return {
@@ -56,25 +88,47 @@ function ToDo() {
       }
       return todo;
     });
+    let [my] = newTodos;
+    let com = my.completed;
+    let textt = my.text;
+    const uid = firebase.auth()?.currentUser?.uid;
+    firebase.database().ref(`/todoData/${uid}/${todo.key}`).update({
+      completed: com,
+      text: textt,
+    });
     setTodos(newTodos);
   };
 
   return (
     <div className="ToDo">
-      <h1>Todo Practice</h1>
+      <h1 style={{ textAlign: "center", margin: 0, padding: 0 }}>Todo App</h1>
       <AddTodo addTodoState={addTodoState} />
-      {todos.map((todo, index) => {
-        return (
-          <TodoItem
-            toggleComplete={toggleComplete}
-            index={index}
-            todo={todo}
-            key={index}
-            deleteTodoFromState={deleteTodoFromState}
-            editTodoFromState={editTodoFromState}
-          />
-        );
-      })}
+      {isLoading ? (
+        <p
+          style={{
+            textAlign: "center",
+            color: "black",
+            fontWeight: "bold",
+            fontSize: "40px",
+          }}
+        >
+          Loading...
+        </p>
+      ) : (
+        todos.map((todo, index) => {
+          return (
+            <TodoItem
+              toggleComplete={toggleComplete}
+              index={index}
+              todo={todo}
+              key={index}
+              deleteTodoFromState={deleteTodoFromState}
+              editTodoFromState={editTodoFromState}
+              isLoading={isLoading}
+            />
+          );
+        })
+      )}
     </div>
   );
 }
